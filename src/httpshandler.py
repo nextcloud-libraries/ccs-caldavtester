@@ -14,48 +14,45 @@
 # limitations under the License.
 ##
 
-import httplib
+import http.client
 import socket
 import ssl as sslmodule
 
-# Used to track what type of connection was previously used to connect to a
-# specific server so we don't need to keep iterate over all types to see what
-# works).
-cached_types = ()
 
-# ssl module may be missing some of these attributes depending on how
-# the backend ssl library is configured.
-for attrname in ("PROTOCOL_TLSv1", "PROTOCOL_SSLv3", "PROTOCOL_SSLv23"):
-    if hasattr(sslmodule, attrname):
-        cached_types += ((set(), getattr(sslmodule, attrname)),)
-if len(cached_types) == 0:
-    raise RuntimeError("Unable to find suitable SSL protocol to use")
-
-
-class HTTPSVersionConnection(httplib.HTTPSConnection):
+def _sslContext(cert_file=None):
     """
-    An L{httplib.HTTPSConnection} class that allows the TLS protocol version to be set.
+    Create an SSL context suitable for a test client: negotiate the best TLS
+    version available and do not verify the server certificate (test servers
+    typically use self-signed certificates).
+
+    @param cert_file: path to a client certificate (PEM, may include the key) or L{None}
+    @type cert_file: L{str}
+    """
+    context = sslmodule.SSLContext(sslmodule.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    context.verify_mode = sslmodule.CERT_NONE
+    if cert_file:
+        context.load_cert_chain(cert_file)
+    return context
+
+
+class HTTPSVersionConnection(http.client.HTTPSConnection):
+    """
+    An L{http.client.HTTPSConnection} class that optionally uses a client certificate
+    and does not verify the server certificate.
     """
 
-    def __init__(self, host, port, ssl_version=cached_types[0][1], cert_file=None):
-
-        httplib.HTTPSConnection.__init__(self, host, port, cert_file=cert_file)
-        self._ssl_version = ssl_version
-
-    def connect(self):
-        "Connect to a host on a given (SSL) port."
-
-        sock = socket.create_connection((self.host, self.port), self.timeout)
-        self.sock = sslmodule.wrap_socket(sock, self.key_file, self.cert_file, ssl_version=self._ssl_version)
+    def __init__(self, host, port, cert_file=None):
+        http.client.HTTPSConnection.__init__(self, host, port, context=_sslContext(cert_file))
 
 
-class UnixSocketHTTPConnection(httplib.HTTPConnection):
+class UnixSocketHTTPConnection(http.client.HTTPConnection):
     """
-    An L{httplib.HTTPConnection} class that uses a unix socket rather than TCP.
+    An L{http.client.HTTPConnection} class that uses a unix socket rather than TCP.
     """
 
     def __init__(self, path, host, port):
-        httplib.HTTPConnection.__init__(self, host, port)
+        http.client.HTTPConnection.__init__(self, host, port)
         self.path = path
 
     def connect(self):
@@ -68,10 +65,7 @@ class UnixSocketHTTPConnection(httplib.HTTPConnection):
 
 def SmartHTTPConnection(host, port, ssl, afunix, cert=None):
     """
-    Create the appropriate L{httplib.HTTPConnection} derived class for the supplied arguments.
-    This attempts to connect to a server using the available SSL protocol types (as per
-    L{cached_types} and if that succeeds it records the host/port in L{cached_types} for
-    use with subsequent connections.
+    Create the appropriate L{http.client.HTTPConnection} derived class for the supplied arguments.
 
     @param host: TCP host name
     @type host: L{str}
@@ -85,31 +79,11 @@ def SmartHTTPConnection(host, port, ssl, afunix, cert=None):
     @type cert: L{str}
     """
 
-    def trySSL(version, cert=None):
-        connect = HTTPSVersionConnection(host, port, ssl_version=version, cert_file=cert)
-        connect.connect()
-        return connect
-
     if afunix:
         connect = UnixSocketHTTPConnection(afunix, host, port)
     elif ssl:
-        # Iterate over the TL:S versions and find one that works and cache it for future use.
-        for cached, connection_type in cached_types:
-            if (host, port) in cached:
-                try:
-                    return trySSL(connection_type, cert)
-                except:
-                    cached.remove((host, port))
-
-        for cached, connection_type in cached_types:
-            try:
-                cached.add((host, port))
-                return trySSL(connection_type, cert)
-            except:
-                cached.remove((host, port))
-
-        raise RuntimeError("Cannot connect via with TLSv1, SSLv3 or SSLv23")
+        connect = HTTPSVersionConnection(host, port, cert_file=cert)
     else:
-        connect = httplib.HTTPConnection(host, port)
+        connect = http.client.HTTPConnection(host, port)
     connect.connect()
     return connect

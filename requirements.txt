@@ -3,4 +3,4 @@
 ##
 
 --editable .  # caldavtester
---editable git+https://github.com/apple/ccs-pycalendar.git#egg=pycalendar
+--editable git+https://github.com/apple/ccs-pycalendar.git@python3#egg=pycalendar

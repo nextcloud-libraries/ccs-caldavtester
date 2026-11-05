@@ -45,7 +45,7 @@ class Verifier(object):
         result = True
         resulttxt = ""
         for hdrname, hdrvalue, presence, matchvalue in testheader:
-            hdrs = response.msg.getheaders(hdrname)
+            hdrs = response.msg.get_all(hdrname, [])
             if (hdrs is None or (len(hdrs) == 0)):
                 if presence != "none":
                     result = False

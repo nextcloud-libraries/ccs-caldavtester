@@ -22,7 +22,7 @@ import datetime
 import re
 import src.xmlDefs
 from uuid import uuid4
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 class serverinfo(object):
@@ -120,7 +120,7 @@ class serverinfo(object):
             db_actual = self.subsdict
         else:
             db_actual = db
-        for key, value in items.iteritems():
+        for key, value in items.items():
             db_actual[key] = value
 
         if db is None:
@@ -137,7 +137,7 @@ class serverinfo(object):
 
         # Various "functions" might be applied to a variable name to cause the value to
         # be changed in various ways
-        for variable, value in items.items():
+        for variable, value in list(items.items()):
 
             # basename() - extract just the URL last path segment from the value
             if variable.startswith("basename("):
@@ -157,13 +157,13 @@ class serverinfo(object):
         uidsubs = dict([("$uid{u}:".format(u=i), str(uuid4())) for i in range(1, 21)])
         self.subsdict.update(uidsubs)
         self.extrasubsdict.update(uidsubs)
-        return set([(v, k) for k, v in uidsubs.items()])
+        return set([(v, k) for k, v in list(uidsubs.items())])
 
     def parseXML(self, node):
-        for child in node.getchildren():
+        for child in list(node):
             if child.tag == src.xmlDefs.ELEMENT_HOST:
                 try:
-                    self.host = child.text.encode("utf-8")
+                    self.host = child.text
                 except:
                     self.host = "localhost"
             elif child.tag == src.xmlDefs.ELEMENT_NONSSLPORT:
@@ -174,7 +174,7 @@ class serverinfo(object):
                 self.afunix = child.text
             elif child.tag == src.xmlDefs.ELEMENT_HOST2:
                 try:
-                    self.host2 = child.text.encode("utf-8")
+                    self.host2 = child.text
                 except:
                     self.host2 = "localhost"
             elif child.tag == src.xmlDefs.ELEMENT_NONSSLPORT2:
@@ -184,35 +184,35 @@ class serverinfo(object):
             elif child.tag == src.xmlDefs.ELEMENT_UNIX2:
                 self.afunix2 = child.text
             elif child.tag == src.xmlDefs.ELEMENT_AUTHTYPE:
-                self.authtype = child.text.encode("utf-8")
+                self.authtype = child.text
             elif child.tag == src.xmlDefs.ELEMENT_CERTDIR:
-                self.certdir = child.text.encode("utf-8")
+                self.certdir = child.text
             elif child.tag == src.xmlDefs.ELEMENT_WAITCOUNT:
-                self.waitcount = int(child.text.encode("utf-8"))
+                self.waitcount = int(child.text)
             elif child.tag == src.xmlDefs.ELEMENT_WAITDELAY:
-                self.waitdelay = float(child.text.encode("utf-8"))
+                self.waitdelay = float(child.text)
             elif child.tag == src.xmlDefs.ELEMENT_WAITSUCCESS:
-                self.waitsuccess = int(child.text.encode("utf-8"))
+                self.waitsuccess = int(child.text)
             elif child.tag == src.xmlDefs.ELEMENT_FEATURES:
                 self.parseFeatures(child)
             elif child.tag == src.xmlDefs.ELEMENT_SUBSTITUTIONS:
                 self.parseSubstitutionsXML(child)
             elif child.tag == src.xmlDefs.ELEMENT_CALENDARDATAFILTER:
-                self.calendardatafilters.append(child.text.encode("utf-8"))
+                self.calendardatafilters.append(child.text)
             elif child.tag == src.xmlDefs.ELEMENT_ADDRESSDATAFILTER:
-                self.addressdatafilters.append(child.text.encode("utf-8"))
+                self.addressdatafilters.append(child.text)
 
         self.updateParams()
 
     def parseFeatures(self, node):
-        for child in node.getchildren():
+        for child in list(node):
             if child.tag == src.xmlDefs.ELEMENT_FEATURE:
-                self.features.add(child.text.encode("utf-8"))
+                self.features.add(child.text)
 
     def updateParams(self):
 
         # Expand substitutions fully at this point
-        for k, v in self.subsdict.items():
+        for k, v in list(self.subsdict.items()):
             while '$' in v:
                 v = self._re_subs(v, self.subsdict)
             self.subsdict[k] = v
@@ -231,11 +231,11 @@ class serverinfo(object):
         # Look for count
         count = node.get(src.xmlDefs.ATTR_COUNT)
 
-        for child in node.getchildren():
+        for child in list(node):
             self.parseSubstitutionXML(child, count)
 
     def parseSubstitutionsXML(self, node):
-        for child in node.getchildren():
+        for child in list(node):
             if child.tag == src.xmlDefs.ELEMENT_SUBSTITUTION:
                 self.parseSubstitutionXML(child)
             elif child.tag == src.xmlDefs.ELEMENT_REPEAT:
@@ -245,11 +245,11 @@ class serverinfo(object):
         if node.tag == src.xmlDefs.ELEMENT_SUBSTITUTION:
             key = None
             value = None
-            for schild in node.getchildren():
+            for schild in list(node):
                 if schild.tag == src.xmlDefs.ELEMENT_KEY:
-                    key = schild.text.encode("utf-8")
+                    key = schild.text
                 elif schild.tag == src.xmlDefs.ELEMENT_VALUE:
-                    value = schild.text.encode("utf-8") if schild.text else ""
+                    value = schild.text if schild.text else ""
 
             if key and value:
                 if repeat:

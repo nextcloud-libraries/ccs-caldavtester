@@ -48,9 +48,9 @@ class JSONPointer(object):
         splits = pointer[1:].split("/")
         if splits == [""]:
             return None
-        if any(map(lambda x: len(x) == 0, splits)):
+        if any([len(x) == 0 for x in splits]):
             raise TypeError("Pointer segment is empty: %s" % (pointer,))
-        return map(self._unescape, splits)
+        return list(map(self._unescape, splits))
 
     def _unescape(self, segment):
         """
@@ -139,7 +139,7 @@ class JSONMatcher(JSONPointer):
         results = []
         if isinstance(j, dict):
             if segments[0] == ".":
-                keys = j.keys()
+                keys = list(j.keys())
             else:
                 keys = [segments[0]]
             for k in keys:
@@ -149,7 +149,7 @@ class JSONMatcher(JSONPointer):
                     pass
         elif isinstance(j, list):
             if segments[0] == ".":
-                r = range(len(j))
+                r = list(range(len(j)))
             else:
                 r = [-1 if segments[0] == "-" else int(segments[0])]
             for index in r:

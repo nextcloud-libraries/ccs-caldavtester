@@ -19,9 +19,9 @@ Verifier that checks a propfind response to make sure that the specified propert
 are returned with appropriate status codes.
 """
 
-from xml.etree.cElementTree import ElementTree, tostring
-from StringIO import StringIO
-import urllib
+from xml.etree.ElementTree import ElementTree, tostring
+from io import StringIO
+import urllib.parse
 
 
 class Verifier(object):
@@ -71,7 +71,7 @@ class Verifier(object):
                     tree = ElementTree(file=StringIO(value))
                 except Exception:
                     return False, "           Could not parse XML value: %s\n" % (value,)
-                value = tostring(tree.getroot())
+                value = tostring(tree.getroot(), encoding="unicode")
             return value
 
         # Get property arguments and split on $ delimited for name, value tuples
@@ -130,7 +130,7 @@ class Verifier(object):
             href = response.find("{DAV:}href")
             if href is None:
                 return False, "           Wrong number of DAV:href elements\n"
-            href = urllib.unquote(href.text)
+            href = urllib.parse.unquote(href.text)
             if href in ignores:
                 continue
             if only and href not in only:
@@ -158,13 +158,13 @@ class Verifier(object):
                 # Get properties for this propstat
                 prop = props.find("{DAV:}prop")
 
-                for child in prop.getchildren():
+                for child in list(prop):
                     fqname = child.tag
                     if len(child):
                         # Copy sub-element data as text into one long string and strip leading/trailing space
                         value = ""
-                        for p in child.getchildren():
-                            temp = tostring(p)
+                        for p in list(child):
+                            temp = tostring(p, encoding="unicode")
                             temp = temp.strip()
                             value += temp
                         if status:

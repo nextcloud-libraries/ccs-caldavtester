@@ -19,7 +19,7 @@ Class to manage the testing process.
 """
 
 from src.serverinfo import serverinfo
-from xml.etree.cElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree
 from xml.parsers.expat import ExpatError
 import getopt
 import os
@@ -77,15 +77,15 @@ class manager(object):
     def logit(self, str):
         if self.logFile:
             self.logFile.write(str + "\n")
-        print str
+        print(str)
 
     def loadObserver(self, observer_name):
-        module = __import__("observers." + observer_name, globals(), locals(), ["Observer", ])
+        module = __import__("src.observers." + observer_name, globals(), locals(), ["Observer", ])
         cl = getattr(module, "Observer")
         self.observers.append(cl(self))
 
     def message(self, message, *args, **kwargs):
-        map(lambda x: x.message(message, *args, **kwargs), self.observers)
+        list(map(lambda x: x.message(message, *args, **kwargs), self.observers))
 
     def testProgress(self, count, total):
         results = {
@@ -137,7 +137,7 @@ class manager(object):
         # Open and parse the server config file
         try:
             tree = ElementTree(file=serverfile)
-        except ExpatError, e:
+        except ExpatError as e:
             raise RuntimeError("Unable to parse file '%s' because: %s" % (serverfile, e,))
 
         # Verify that top-level element is correct
@@ -181,7 +181,7 @@ class manager(object):
             # Open and parse the config file
             try:
                 tree = ElementTree(file=fname)
-            except ExpatError, e:
+            except ExpatError as e:
                 raise RuntimeError("Unable to parse file '%s' because: %s" % (fname, e,))
             caldavtest_node = tree.getroot()
             if caldavtest_node.tag != src.xmlDefs.ELEMENT_CALDAVTEST:
@@ -310,7 +310,9 @@ class manager(object):
 
         if all or not args:
             files = []
-            os.path.walk(dname, lambda arg, dir, names: files.extend([os.path.join(dir, name) for name in names]) if not dir.startswith("test") else None, None)
+            for dir, dirnames, names in os.walk(dname):
+                if not dir.startswith("test"):
+                    files.extend([os.path.join(dir, name) for name in dirnames + names])
             for file in files:
                 if file.endswith(".xml") and file[len(dname) + 1:] not in excludes:
                     if subdir is None or file[len(dname) + 1:].startswith(subdir):
@@ -350,7 +352,7 @@ class manager(object):
             self.randomSeed = random_seed
 
         # Load observers
-        map(lambda name: self.loadObserver(name), observer_names if observer_names else ["log", ])
+        list(map(lambda name: self.loadObserver(name), observer_names if observer_names else ["log", ]))
 
         self.readXML(sname, fnames, ssl, all)
 

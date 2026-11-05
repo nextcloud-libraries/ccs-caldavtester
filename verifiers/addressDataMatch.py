@@ -33,7 +33,7 @@ class Verifier(object):
         # Get arguments
         files = args.get("filepath", [])
         if manager.data_dir:
-            files = map(lambda x: os.path.join(manager.data_dir, x), files)
+            files = [os.path.join(manager.data_dir, x) for x in files]
         carddata = args.get("data", [])
         filters = args.get("filter", [])
 
@@ -54,7 +54,7 @@ class Verifier(object):
 
         # read in all data from specified file or use provided data
         if len(files):
-            fd = open(files[0], "r")
+            fd = open(files[0], "r", encoding="utf-8")
             try:
                 try:
                     data = fd.read()
@@ -73,7 +73,7 @@ class Verifier(object):
         def removePropertiesParameters(component):
 
             allProps = []
-            for properties in component.getProperties().itervalues():
+            for properties in component.getProperties().values():
                 allProps.extend(properties)
             for property in allProps:
                 for filter in filters:
@@ -109,5 +109,5 @@ class Verifier(object):
             else:
                 error_diff = "\n".join([line for line in unified_diff(data.split("\n"), respdata.split("\n"))])
                 return False, "        Response data does not exactly match file data%s" % (error_diff,)
-        except Exception, e:
+        except Exception as e:
             return False, "        Response data is not address data: %s" % (e,)

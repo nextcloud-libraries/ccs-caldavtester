@@ -35,7 +35,7 @@ class Verifier(object):
         # Get arguments
         files = args.get("filepath", [])
         if manager.data_dir:
-            files = map(lambda x: os.path.join(manager.data_dir, x), files)
+            files = [os.path.join(manager.data_dir, x) for x in files]
         caldata = args.get("data", [])
         filters = args.get("filter", [])
         statusCode = args.get("status", ["200", "201", "207"])
@@ -49,7 +49,7 @@ class Verifier(object):
         for afilter in tuple(filters):
             if afilter[0] == "!" and afilter[1:] in filters:
                 filters.remove(afilter[1:])
-        filters = filter(lambda x: x[0] != "!", filters)
+        filters = [x for x in filters if x[0] != "!"]
 
         if doTimezones is None:
             doTimezones = "timezones-by-reference" not in manager.server_info.features
@@ -70,7 +70,7 @@ class Verifier(object):
 
         # read in all data from specified file or use provided data
         if len(files):
-            fd = open(files[0], "r")
+            fd = open(files[0], "r", encoding="utf-8")
             try:
                 try:
                     data = fd.read()
@@ -101,7 +101,7 @@ class Verifier(object):
                     component.editTimingStartDuration(component.getStart(), component.getEnd() - component.getStart())
 
             allProps = []
-            for properties in component.getProperties().itervalues():
+            for properties in component.getProperties().values():
                 allProps.extend(properties)
             for property in allProps:
                 # Always reset DTSTAMP on these properties
@@ -186,5 +186,5 @@ class Verifier(object):
             else:
                 error_diff = "\n".join([line for line in unified_diff(data.split("\n"), respdata.split("\n"))])
                 return False, "        Response data does not exactly match file data%s" % (error_diff,)
-        except Exception, e:
+        except Exception as e:
             return False, "        Response data is not calendar data: %s" % (e,)

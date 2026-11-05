@@ -50,14 +50,14 @@ class Verifier(object):
             return False, "        No response body"
 
         # Must be application/json
-        ct = response.msg.getheaders("content-type")[0].split(";")[0]
+        ct = response.msg.get("content-type", "").split(";")[0]
         if ct != "application/json" and not ct.endswith("+json"):
             return False, "        Wrong Content-Type: %s" % (ct,)
 
         # Read in json
         try:
             j = json.loads(respdata)
-        except Exception, e:
+        except Exception as e:
             return False, "        Response data is not JSON data: %s" % (e,)
 
         def _splitPathTests(path):
@@ -86,7 +86,7 @@ class Verifier(object):
                     if not jobjs:
                         result = False
                         resulttxt += "        Items not returned in JSON for %s\n" % (path,)
-                    if value and value not in map(lambda x: self.null if x is None else str(x), jobjs):
+                    if value and value not in [self.null if x is None else str(x) for x in jobjs]:
                         result = False
                         resulttxt += "        Item values not returned in JSON for %s\n" % (jpath,)
                 except JSONPointerMatchError:

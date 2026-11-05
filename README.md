@@ -1,17 +1,11 @@
 CALDAVTESTER
 ============
 
-# Notice of Archival
-
-The developers of the Calendar and Contacts Server and its related
-projects have each moved on to other things. The time has come to
-officially archive the project. Thank you to all the users and
-contributors. Feel free to fork this project if you wish to continue
-to maintain it.
+Semi-maintained fork of [apple/css-davtester](https://github.com/apple/ccs-caldavtester).
 
 # INTRODUCTION
 
-CalDAVTester is a Python app that will run a series of scripted tests
+CalDAVTester is a Python 3 app that will run a series of scripted tests
 against a CalDAV server and verify the output, and optionally measure
 the time taken to complete one or more repeated requests. The tests are
 defined by XML files and ancillary HTTP request body files. A number of
@@ -28,7 +22,7 @@ into the virtualenv:
 
 	git clone https://github.com/apple/ccs-caldavtester.git
 	cd ccs-caldevtester
-	virtualenv venv
+	python3 -m venv venv
 	source venv/bin/activate
 	pip install -r requirements.txt
 

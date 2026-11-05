@@ -24,10 +24,10 @@ try:
     from pycalendar.icalendar.calendar import Calendar
 except ImportError:
     pass
-from xml.etree.cElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree
 import json
 import re
-import StringIO
+import io
 
 
 class Verifier(object):
@@ -48,8 +48,8 @@ class Verifier(object):
 
         # Read in XML
         try:
-            tree = ElementTree(file=StringIO.StringIO(respdata))
-        except Exception, e:
+            tree = ElementTree(file=io.StringIO(respdata))
+        except Exception as e:
             return False, "        Response data is not xml data: %s" % (e,)
 
         def _splitPathTests(path):
@@ -94,7 +94,7 @@ class Verifier(object):
         # Handle absolute root element
         if actual_path[0] == '/':
             actual_path = actual_path[1:]
-        r = re.search("(\{[^\}]+\}[^/]+)(.*)", actual_path)
+        r = re.search(r"(\{[^\}]+\}[^/]+)(.*)", actual_path)
         if r.group(2):
             root_path = r.group(1)
             child_path = r.group(2)[1:]
@@ -133,7 +133,7 @@ class Verifier(object):
             else:
                 attr = test[1:]
                 value = None
-            if attr not in node.keys():
+            if attr not in list(node.keys()):
                 result = "        Missing attribute returned in XML for %s\n" % (node_path,)
             if value is not None and node.get(attr) != value:
                 result = "        Incorrect attribute value returned in XML for %s\n" % (node_path,)
@@ -158,17 +158,17 @@ class Verifier(object):
             else:
                 element = test[1:]
                 value = None
-            for child in node.getchildren():
+            for child in list(node):
                 if child.tag == element and (value is None or child.text == value):
                     break
             else:
                 result = "        Missing child returned in XML for %s\n" % (node_path,)
         elif test[0] == '|':
             if len(test) == 2 and test[1] == "|":
-                if node.text is None and len(node.getchildren()) == 0:
+                if node.text is None and len(node) == 0:
                     result = "        Empty element returned in XML for %s\n" % (node_path,)
             else:
-                if node.text is not None or len(node.getchildren()) != 0:
+                if node.text is not None or len(node) != 0:
                     result = "        Non-empty element returned in XML for %s\n" % (node_path,)
 
         # Try to parse as iCalendar
@@ -202,7 +202,7 @@ class Verifier(object):
             tests = None
 
         if parent_map is None:
-            parent_map = dict((c, p) for p in root.getiterator() for c in p)
+            parent_map = dict((c, p) for p in root.iter() for c in p)
 
         # Handle parents
         if actual_xpath.startswith("../"):
@@ -210,7 +210,7 @@ class Verifier(object):
             actual_xpath = "./" + actual_xpath[3:]
 
         # Handle absolute root element and find all matching nodes
-        r = re.search("(/?\{[^\}]+\}[^/]+|\.)(.*)", actual_xpath)
+        r = re.search(r"(/?\{[^\}]+\}[^/]+|\.)(.*)", actual_xpath)
         if r.group(2):
             root_path = r.group(1)
             child_path = r.group(2)[1:]
@@ -273,7 +273,7 @@ if __name__ == '__main__':
 </D:test>
 """
 
-    node = ElementTree(file=StringIO.StringIO(xmldata)).getroot()
+    node = ElementTree(file=io.StringIO(xmldata)).getroot()
 
     assert Verifier.matchNode(node, "/{DAV:}test/{DAV:}b/{DAV:}c[=C]/../{DAV:}d[=D]")[0]
     assert not Verifier.matchNode(node, "/{DAV:}test/{DAV:}b/{DAV:}c[=C]/../{DAV:}d[=E]")[0]
